@@ -2,15 +2,18 @@ using UnityEngine;
 
 public class DoorTrigger : MonoBehaviour
 {
-    [SerializeField] private DoorController[] doors;
+    
+    public DoorController[] doors;
+    public string playerTag = "Player";
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.tag == "Player")
+        if (other.CompareTag(playerTag))
         {
             foreach (DoorController door in doors)
             {
-                door.Open();
+                if (door)
+                    door.Open();
             }
             
         }
@@ -18,11 +21,12 @@ public class DoorTrigger : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.tag == "Player")
+        if (other.CompareTag(playerTag))
         {
             foreach (DoorController door in doors)
             {
-                door.Close();
+                if (door)
+                    door.Close();
             }
         }
     }
