@@ -18,12 +18,17 @@ public class PlayerCharacter : MonoBehaviour
     public bool SprintHeld() => Input.GetKey(sprintKey);
     public bool CrouchHeld() => Input.GetKey(crouchKey);
     
-    [Header("Ground Check")]
+    [Header("Ground Settings")]
     [SerializeField] LayerMask groundMask;
+    [SerializeField] float groundCheckDistance = 0.25f;
+
+    public bool IsGrounded { get; private set; }
+    public bool IsStableGround { get; private set; }
+    public RaycastHit GroundHit { get; private set; }
     
     bool isCrouching = false;
 
-    public bool IsGrounded => TryGetGround(out _);
+    // public bool IsGrounded => TryGetGround(out _);
     
     private void Awake()
     {
@@ -44,8 +49,9 @@ public class PlayerCharacter : MonoBehaviour
 
     private void Update()
     {
+        UpdateGround();
         StateMachine.Tick();
-        Motor.TickGravity(IsGrounded); 
+        Motor.TickGravity(IsGrounded);
         
     }
     
@@ -110,7 +116,7 @@ public class PlayerCharacter : MonoBehaviour
     public bool TryGetGround(out RaycastHit hit)
     {
         float radius = Controller.radius * 0.95f;
-        float castDistance = 0.3f;
+        float castDistance = 0.15f;
 
         Vector3 origin = transform.position + Vector3.up * radius;
 
@@ -122,6 +128,34 @@ public class PlayerCharacter : MonoBehaviour
             castDistance,
             groundMask
         );
+    }
+    
+    void UpdateGround()
+    {
+        IsGrounded = false;
+        IsStableGround = false;
+
+        if (!Controller.isGrounded)
+            return;
+
+        Vector3 origin = transform.position + Vector3.up * 0.1f;
+
+        if (Physics.Raycast(
+                origin,
+                Vector3.down,
+                out RaycastHit hit,
+                groundCheckDistance,
+                groundMask,
+                QueryTriggerInteraction.Ignore))
+        {
+            float angle = Vector3.Angle(hit.normal, Vector3.up);
+
+            GroundHit = hit;
+            IsGrounded = true;
+
+            if (angle <= stats.maxSlopeAngle)
+                IsStableGround = true;
+        }
     }
     
     public bool TryGetMantleZone(out MantleZone zone)

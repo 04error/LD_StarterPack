@@ -17,7 +17,7 @@ MonoBehaviour:
   crouchSpeed: 1.5
   climbSpeed: 5
   jumpHeight: 1.5
-  gravity: -20
+  gravity: -10
   airControl: 3
   standHeight: 1.8
   crouchHeight: 1.25

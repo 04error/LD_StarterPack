@@ -3,8 +3,8 @@ public class CharacterMotor
 {
     CharacterController controller;
     CharacterStats stats;
-
-    Vector3 velocity;
+    
+    float verticalVelocity;
 
     float characterYaw;
     bool grounded;
@@ -22,39 +22,31 @@ public class CharacterMotor
     {
         isOnLadder = value;
         if (isOnLadder)
-            velocity.y = 0f;
-    }
-    
-    public Vector3 ProjectOnGround(Vector3 move, Vector3 normal)
-    {
-        return Vector3.ProjectOnPlane(move, normal).normalized;
+            verticalVelocity = 0f;
     }
 
-
-    public void TickGravity(bool isGrounded)
+    public void TickGravity(bool grounded)
     {
         if (isOnLadder || isOnMantle)
             return;
         
-        grounded = isGrounded;
-        
-        if (grounded && velocity.y < 0f)
-            velocity.y = 0f;
+        if (grounded && verticalVelocity < 0)
+            verticalVelocity = -2f;
+        else
+            verticalVelocity += stats.gravity * Time.deltaTime;
 
-        velocity.y += stats.gravity * Time.deltaTime;
-
-        controller.Move(velocity.y * Time.deltaTime * Vector3.up);
+        Vector3 gravityMove = Vector3.up * verticalVelocity;
+        controller.Move(gravityMove * Time.deltaTime);
     }
 
     public void Jump()
     {
-        Debug.Log("Jump");
-        velocity.y = Mathf.Sqrt(-2f * stats.gravity * stats.jumpHeight);
+        verticalVelocity = Mathf.Sqrt(-2f * Physics.gravity.y * stats.jumpHeight);
     }
 
     public void CancelVerticalVelocity()
     {
-        velocity.y = 0f;
+        verticalVelocity = 0f;
     }
     
     
@@ -76,7 +68,7 @@ public class CharacterMotor
     public void ApplySlide(Vector3 normal)
     {
         Vector3 slideDir = Vector3.ProjectOnPlane(Vector3.down, normal);
-        controller.Move( stats.slideGravity * Time.deltaTime * slideDir);
+        controller.Move(stats.slideGravity * Time.deltaTime * slideDir);
     }
     
     

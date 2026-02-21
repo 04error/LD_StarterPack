@@ -17,65 +17,58 @@ public class GroundedState : ICharacterState
 
     public void Tick()
     {
+        if (!player.IsGrounded)
+        {
+            player.StateMachine.SetState(new FallState(player));
+            return;
+        }
+        
+        if (player.Interactor.TryEnterLadder(out Ladder ladder))
+            player.StateMachine.SetState(new LadderState(player, ladder));
+
+
         Vector2 input = new Vector2(
             Input.GetAxis("Horizontal"),
             Input.GetAxis("Vertical")
         );
-        
-        if (Input.GetKeyDown(player.jumpKey))
+
+        if (Input.GetKeyDown(player.jumpKey) && player.IsStableGround)
             player.Motor.Jump();
 
+        Vector3 forward = player.CameraController.cameraPivot.forward;
+        Vector3 right = player.CameraController.cameraPivot.right;
+
+        forward.y = 0;
+        right.y = 0;
+        forward.Normalize();
+        right.Normalize();
+
+        Vector3 move = forward * input.y + right * input.x;
+
+        if (move.sqrMagnitude > 1f)
+            move.Normalize();
         
-        if (!player.IsGrounded)
-            player.StateMachine.SetState(new FallState(player));
+        if (player.CameraController.currentModeType == CameraModeType.ThirdPerson)
+            player.Motor.RotateCharacter(move, player.transform);
 
-        if (player.Interactor.TryInteract())
-            return;
-
-        if (player.Interactor.TryEnterLadder(out Ladder ladder))
-            player.StateMachine.SetState(new LadderState(player, ladder));
-
-        
-        if (player.TryGetGround(out RaycastHit hit))
+        if (!player.IsStableGround)
         {
-            Vector3 forward = player.CameraController.cameraPivot.forward;
-            Vector3 right = player.CameraController.cameraPivot.right;
-
-            forward.y = 0f;
-            right.y = 0f;
-
-            forward.Normalize();
-            right.Normalize();
-
-            Vector3 move = forward * input.y + right * input.x;
-
-            if (move.sqrMagnitude > 1f)
-                move.Normalize();
-            
-            if (player.CameraController.currentModeType == CameraModeType.ThirdPerson)
-                player.Motor.RotateCharacter(move, player.transform);
-
-            if (player.IsOnSteepSlope(out _))
-            {
-                player.Motor.ApplySlide(hit.normal);
-                return;
-            }
-
-            Vector3 surfaceMove = player.Motor.ProjectOnGround(move, hit.normal);
-            float speed = player.stats.moveSpeed;
-
-            if (player.SprintHeld())
-                speed = player.stats.sprintSpeed;
-
-            if (player.CrouchHeld())
-                speed = player.stats.crouchSpeed;
-
-            player.Motor.MoveSurface(surfaceMove, speed);
-
+            player.Motor.ApplySlide(player.GroundHit.normal);
+            return;
         }
 
+        Vector3 surfaceMove = Vector3.ProjectOnPlane(move, player.GroundHit.normal);
+
+        float speed = player.stats.moveSpeed;
+
+        if (player.SprintHeld())
+            speed = player.stats.sprintSpeed;
+
+        if (player.CrouchHeld())
+            speed = player.stats.crouchSpeed;
+
+        player.Motor.MoveSurface(surfaceMove, speed);
     }
-    
 
     public void Exit() { }
 }
